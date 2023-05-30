@@ -1,0 +1,26 @@
+deny:
+  words:
+    - lorem 
+    - ipsum 
+    - consectetur 
+    - adipiscing 
+    - eiusmod 
+    - incididunt 
+    - aliqua
+    - enim 
+    - minim
+    - veniam 
+    - nostrud 
+    - exercitation 
+    - ullamco 
+    - aliquip 
+    - consequat
+    - irure 
+    - reprehenderit 
+    - voluptate 
+    - cillum 
+    - pariatur
+    - /https:\/\/cloudsecurityalliance.org.*/
+  constants:
+    - Faker
+    - Good::Example
