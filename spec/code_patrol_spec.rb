@@ -5,25 +5,23 @@ RSpec.describe NoLorem::CodePatrol do
     @config = {
       "deny" => {
         "words" => ["lorem", "ipsum", "consectetur", "/https:\/\/example.com/"],
-        "constants" => ["Some::Example", "Faker", "Example"],
+        "constants" => ["Some::Example", "Faker", "Example", "OptionParser"],
       },
       "all" => true,
     }
     @patrol = NoLorem::CodePatrol.new(config: @config)
   end
 
-  it "it finds denied word in plain string" do
-    sample_code = '"lorem ipsum"'
-    HEREDOC
+  it "finds denied word in plain string" do
+    sample_code = '"Lorem ipsum"'
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
     expect(@patrol.issues.count).to(eq(2))
-    expect(@patrol.issues[0].to_s).to(include("Found word 'Lorem'"))
-    expect(@patrol.issues[1].to_s).to(include("Found word 'ipsum'"))
-
+    expect(@patrol.issues[0].to_s).to(include("Found expression 'Lorem'"))
+    expect(@patrol.issues[1].to_s).to(include("Found expression 'ipsum'"))
   end
 
-  it "it finds denied words" do
+  it "finds denied words" do
     sample_code = <<~HEREDOC
     module Foo
       def self.example()
@@ -34,11 +32,11 @@ RSpec.describe NoLorem::CodePatrol do
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
     expect(@patrol.issues.count).to(eq(2))
-    expect(@patrol.issues[0].to_s).to(include("Found word 'Lorem'"))
-    expect(@patrol.issues[1].to_s).to(include("Found word 'ipsum'"))
+    expect(@patrol.issues[0].to_s).to(include("Found expression 'Lorem'"))
+    expect(@patrol.issues[1].to_s).to(include("Found expression 'ipsum'"))
   end
 
-  it "it finds denied constants" do
+  it "finds denied constants" do
     sample_code = <<~HEREDOC
     module Foo
       def self.example()
@@ -68,6 +66,13 @@ RSpec.describe NoLorem::CodePatrol do
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
     expect(@patrol.issues.count).to(eq(1))
-    expect(@patrol.issues[0].to_s).to(include("Found word 'https://example.com/hello/there'"))
+    expect(@patrol.issues[0].to_s).to(include("Found expression 'https://example.com/hello/there'"))
+  end
+
+  it "scans files" do
+    @patrol.examine_files(["lib/no-lorem/runner.rb", "lib/no-lorem.rb"])
+    expect(@patrol.issues?).to(be(true))
+    expect(@patrol.issues.count).to(eq(1))
+    expect(@patrol.issues[0].to_s).to(include("OptionParser"))
   end
 end

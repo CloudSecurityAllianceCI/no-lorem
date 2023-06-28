@@ -11,7 +11,11 @@ module NoLorem
     end
 
     def to_s
-      "#{file}:#{line} #{description}"
+      "#{location} #{description}"
+    end
+
+    def location
+      "#{file}:#{line}"
     end
   end
 
@@ -82,7 +86,7 @@ module NoLorem
       words = str.split(/\s+/)
       words.each do |word|
         if watchlist_match?(words: word)
-          add_issue("Found word '#{word}'", line: line)
+          add_issue("Found expression '#{word}'", line: line)
           break unless @config["all"]
         end
       end

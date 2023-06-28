@@ -20,7 +20,5 @@ deny:
     - voluptate 
     - cillum 
     - pariatur
-    - /https:\/\/cloudsecurityalliance.org.*/
   constants:
     - Faker
-    - Good::Example

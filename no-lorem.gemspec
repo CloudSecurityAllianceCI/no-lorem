@@ -8,4 +8,13 @@ Gem::Specification.new do |s|
   s.files       = Dir.glob("lib/**/*.rb")
   s.homepage    = "https://example.com"
   s.license     = "MIT"
+
+  s.required_ruby_version = ">2.7.2"
+
+  s.add_runtime_dependency "yaml"
+  s.add_runtime_dependency "parser"
+  s.add_runtime_dependency "pastel"
+
+  s.add_development_dependency "rspec"
+  s.add_development_dependency "byebug"
 end

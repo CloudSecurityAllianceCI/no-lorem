@@ -1,5 +1,7 @@
 require 'optparse'
 require 'yaml'
+require 'pastel'
+require 'pathname'
 
 module NoLorem
   def self.deep_merge_hashes(original, extra)
@@ -16,18 +18,26 @@ module NoLorem
       else
         result[key] = val
       end
-      result
     end
+    (extra.keys - original.keys).each do |key|
+      result[key] = extra[key]
+    end
+    result
   end
 
   class Runner
+    attr_reader :terminal
+
     def initialize
+      @terminal = nil
     end
 
     def go(argv)
       parse_options(argv)
+      set_terminal_coloring
       generate_file_list(argv)
       process_configuration
+      print_denylists if verbose?
       process_files
     rescue => ex
       puts ex.message
@@ -35,11 +45,17 @@ module NoLorem
       puts @option_parser
     end
 
+    private
+
+    def verbose?
+      @config["verbose"]
+    end
+
     def parse_options(argv)
       @options = { "exclude" => [], "deny" => {} }
       @files = []
       @option_parser = OptionParser.new do |opts|
-        opts.banner = "Usage: no-lorem.rb [options] <path>"
+        opts.banner = "Usage: no-lorem [options] <path>"
 
         opts.on("-c", "--config FILE", "Load configuration file") do |config_file|
           @options["config"] = config_file
@@ -53,8 +69,16 @@ module NoLorem
           @options["all"] = true
         end
 
-        opts.on("-f", "--first", "Signal first error on the same source line") do
+        opts.on("-f", "--first", "Signal first error on the same source line (default)") do
           @options["all"] = false
+        end
+
+        opts.on("--[no-]color", "Run with colored output in terminal") do |v|
+          @options["color"] = v
+        end
+
+        opts.on("--verbose", "-v", "Display additional debugging information") do
+          @options["verbose"] = true
         end
 
         opts.on("-w", "--deny-word WORD", "Add word to deny list") do |word|
@@ -70,11 +94,19 @@ module NoLorem
       @option_parser.parse!(argv)
     end
 
+    def set_terminal_coloring
+      if @options.key? "color"
+        @terminal = Pastel.new(enabled: @options["color"])
+      else
+        @terminal = Pastel.new(enabled: $stdout.tty?)
+      end
+    end
+
     def process_configuration
       if file = configuration_file
         config = YAML.load_file(file)
         puts "Using configuration file: #{file}"
-        @config = NoLorem.deep_merge_hashes(config.except("config"), @options)
+        @config = NoLorem.deep_merge_hashes(config, @options.except("config"))
       else
         @config = @options
       end
@@ -87,26 +119,41 @@ module NoLorem
       print "Examining #{@files.length} file(s): ["
       @files.each do |file|
         if file.end_with? ".rb"
-          putc "c"
-          code_patrol.examine_files(file)
+          process_ruby_file file, with: code_patrol
         else
-          putc "."
-          line_patrol.examine_files(file)
+          process_text_file file, with: line_patrol
         end
       end
       puts "]"
       issues = code_patrol.issues + line_patrol.issues
       if issues.any?
-        puts "Found #{issues.length} issue(s):"
+        puts terminal.yellow("Found #{issues.length} issue(s):")
         issues.each_with_index do |issue, index|
-          puts " #{index}) #{issue}"
+          puts terminal.cyan(" #{index+1}) #{issue.location} ")
+          puts "    " + terminal.red(issue.description)
         end
         exit 1
       end
-      puts "No issues where found. Great!"
+      puts terminal.green("No issues where found. Great!")
     end
 
-    private
+    def process_ruby_file(file, with:)
+      if verbose?
+        puts file
+      else
+        print terminal.blue("c")
+      end
+      with.examine_files(file)
+    end
+
+    def process_text_file(file, with:)
+      if verbose?
+        puts file
+      else
+        print terminal.blue("t")
+      end
+      with.examine_files(file)
+    end
 
     def configuration_file
       return @options["config"] if @options["config"]
@@ -118,7 +165,7 @@ module NoLorem
           return candidate
         end
       end
-      puts "No configuration file specified, tried default locations without success: #{candidates.join(', ')}"
+      puts terminal.yellow("No configuration file specified, tried default locations without success: #{candidates.join(', ')}")
       nil
     end
 
@@ -130,9 +177,9 @@ module NoLorem
         end
       else
         if file_or_dir.end_with?('.rb') ||
-            file_or_dir.end_with?('.html.erb') ||
-            file_or_dir.end_with?('.html.slim')
-          result << File.expand_path(file_or_dir)
+            file_or_dir.end_with?('.erb') ||
+            file_or_dir.end_with?('.slim')
+          result << Pathname.new(file_or_dir).cleanpath.to_s
         end
       end
       result
@@ -143,13 +190,30 @@ module NoLorem
       if argv.length>0
         argv.each { |file_or_dir| @files += expand_files(file_or_dir) }
       else
-        puts option_parser
+        puts @option_parser
         puts
-        puts "Please specify a file or directory to analyze"
+        puts terminal.yellow("Please specify a file or directory to analyze")
         exit 1
       end
 
       @files -= @options["exclude"]
+    end
+
+    def print_denylists
+      if @config["deny"]["words"]
+        puts "Denylist for words:"
+        @config["deny"]["words"].each do |word|
+          puts terminal.blue(" - #{word}")
+        end
+      else
+        puts "No denylist for words."
+      end
+      if @config["deny"]["constants"]
+        puts "Deby list for ruby constants:"
+        @config["deny"]["words"].each do |constant|
+          puts terminal.blue(" - #{constant}")
+        end
+      end
     end
   end
 end

@@ -1,6 +1,3 @@
-ruby '~> 3.0'
+source "https://rubygems.org"
 
-gem 'yaml'
-gem 'rspec'
-gem 'byebug'
-gem 'parser'
+gemspec
