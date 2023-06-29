@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'optparse'
 require 'yaml'
 require 'pastel'
@@ -35,8 +37,8 @@ module NoLorem
     def go(argv)
       parse_options(argv)
       set_terminal_coloring
-      generate_file_list(argv)
       process_configuration
+      generate_file_list(argv)
       print_denylists if verbose?
       process_files
     rescue => ex
@@ -196,7 +198,11 @@ module NoLorem
         exit 1
       end
 
-      @files -= @options["exclude"]
+      exclusion_list = []
+      if @config["exclude"]
+        @config["exclude"].each { |file_or_dir| exclusion_list += expand_files(file_or_dir) }
+      end
+      @files -= exclusion_list
     end
 
     def print_denylists

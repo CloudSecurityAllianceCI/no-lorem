@@ -1,10 +1,10 @@
 PATH
   remote: .
   specs:
-    no-lorem (0.0.1)
-      parser
-      pastel
-      yaml
+    no-lorem (0.0.2)
+      parser (~> 3.2)
+      pastel (~> 0.8)
+      yaml (~> 0.2)
 
 GEM
   remote: https://rubygems.org/
@@ -38,9 +38,9 @@ PLATFORMS
   arm64-darwin-21
 
 DEPENDENCIES
-  byebug
+  byebug (~> 11.0)
   no-lorem!
-  rspec
+  rspec (~> 3.0)
 
 BUNDLED WITH
    2.3.26
