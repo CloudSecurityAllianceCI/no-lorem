@@ -6,4 +6,3 @@ $LOAD_PATH.unshift(libx) unless $LOAD_PATH.include?(libx)
 require 'no-lorem'
 
 NoLorem::Runner.new.go(ARGV)
-
