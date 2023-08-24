@@ -2,7 +2,7 @@
 
 module NoLorem
   module Version
-    STRING = '0.0.2'
+    STRING = '0.0.3'
 
     def self.version
       STRING

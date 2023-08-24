@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require 'warning'
+Warning.ignore(/warning: parser/)
+
 require 'byebug'
 require 'parser/current'
 
@@ -51,7 +54,7 @@ module NoLorem
     def examine_files(files)
       files = [files] if files.is_a? String
       files.each do |fname|
-        examine(File.read(fname), context: fname)
+        examine(File.read(fname, encoding: "utf-8"), context: fname)
       end
       issues?
     end

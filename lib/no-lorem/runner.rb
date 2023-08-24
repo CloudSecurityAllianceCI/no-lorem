@@ -42,9 +42,10 @@ module NoLorem
       print_denylists if verbose?
       process_files
     rescue => ex
-      puts ex.message
+      puts terminal.red("#{ex.message} (#{ex.class.name})")
       puts
       puts @option_parser
+      exit(2)
     end
 
     private
@@ -83,12 +84,12 @@ module NoLorem
           @options["verbose"] = true
         end
 
-        opts.on("-w", "--deny-word WORD", "Add word to deny list") do |word|
+        opts.on("-w", "--deny-word WORD", "Add word to denylist") do |word|
           @options["deny"]["words"] = [] unless @options["deny"]["words"]
           @options["deny"]["words"] << word
         end
 
-        opts.on("-C", "--deny-constant CONSTANT", "Add constant to deny list") do |constant|
+        opts.on("-C", "--deny-constant CONSTANT", "Add constant to denylist") do |constant|
           @options["deny"]["constants"] = [] unless @options["deny"]["words"]
           @options["deny"]["constants"] << constant
         end
@@ -108,7 +109,8 @@ module NoLorem
       if file = configuration_file
         config = YAML.load_file(file)
         puts "Using configuration file: #{file}"
-        @config = NoLorem.deep_merge_hashes(config, @options.except("config"))
+        @options.delete("config")
+        @config = NoLorem.deep_merge_hashes(config, @options)
       else
         @config = @options
       end
@@ -219,6 +221,8 @@ module NoLorem
         @config["deny"]["words"].each do |constant|
           puts terminal.blue(" - #{constant}")
         end
+      else
+        puts "No denylist for constants."
       end
     end
   end
