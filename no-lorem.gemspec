@@ -24,8 +24,8 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency("yaml","~> 0.2")
   s.add_runtime_dependency("parser", "~> 3.2")
   s.add_runtime_dependency("pastel", "~> 0.8")
+  s.add_runtime_dependency("warning", "~> 1.3")
 
   s.add_development_dependency("rspec", "~> 3.0")
   s.add_development_dependency("byebug", "~> 11.0")
-  s.add_development_dependency("warning", "~> 1.3")
 end
