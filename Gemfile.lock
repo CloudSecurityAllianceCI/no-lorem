@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    no-lorem (0.0.3)
+    no-lorem (0.0.4)
       parser (~> 3.2)
       pastel (~> 0.8)
       warning (~> 1.3)
