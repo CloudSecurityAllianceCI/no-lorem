@@ -7,6 +7,10 @@ RSpec.describe NoLorem::CodePatrol do
         "words" => ["lorem", "ipsum", "consectetur", "/https:\/\/example.com/"],
         "constants" => ["Some::Example", "Faker", "Example", "OptionParser"],
       },
+      "warn" => {
+        "words" => ["dolor", "sit", "amet", "elit"],
+        "constants" => ["Pizza"],
+      },
       "all" => true,
     }
     @patrol = NoLorem::CodePatrol.new(config: @config)
@@ -16,9 +20,24 @@ RSpec.describe NoLorem::CodePatrol do
     sample_code = '"Lorem ipsum"'
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
+    expect(@patrol.warnings?).to(be(false))
     expect(@patrol.issues.count).to(eq(2))
     expect(@patrol.issues[0].to_s).to(include("Found expression 'Lorem'"))
     expect(@patrol.issues[1].to_s).to(include("Found expression 'ipsum'"))
+  end
+
+  it "finds denied word and waring word in plain string" do
+    sample_code = '"Lorem ipsum dolor sit amet"'
+    @patrol.examine(sample_code)
+    expect(@patrol.issues?).to(be(true))
+    expect(@patrol.warnings?).to(be(true))
+    expect(@patrol.issues.count).to(eq(2))
+    expect(@patrol.warnings.count).to(eq(3))
+    expect(@patrol.issues[0].to_s).to(include("Found expression 'Lorem'"))
+    expect(@patrol.issues[1].to_s).to(include("Found expression 'ipsum'"))
+    expect(@patrol.warnings[0].to_s).to(include("Found expression 'dolor'"))
+    expect(@patrol.warnings[1].to_s).to(include("Found expression 'sit'"))
+    expect(@patrol.warnings[2].to_s).to(include("Found expression 'amet'"))
   end
 
   it "finds denied words" do
@@ -31,12 +50,13 @@ RSpec.describe NoLorem::CodePatrol do
     HEREDOC
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
+    expect(@patrol.warnings?).to(be(false))
     expect(@patrol.issues.count).to(eq(2))
     expect(@patrol.issues[0].to_s).to(include("Found expression 'Lorem'"))
     expect(@patrol.issues[1].to_s).to(include("Found expression 'ipsum'"))
   end
 
-  it "finds denied constants" do
+  it "finds denied constants and warnings" do
     sample_code = <<~HEREDOC
     module Foo
       def self.example()
@@ -44,6 +64,8 @@ RSpec.describe NoLorem::CodePatrol do
       end
 
       class Other
+        include Pizza
+
         def info
           @info ||= Some::Example.text
         end
@@ -52,9 +74,12 @@ RSpec.describe NoLorem::CodePatrol do
     HEREDOC
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
+    expect(@patrol.warnings?).to(be(true))
     expect(@patrol.issues.count).to(eq(2))
+    expect(@patrol.warnings.count).to(eq(1))
     expect(@patrol.issues[0].to_s).to(include("Found constant 'Faker'"))
     expect(@patrol.issues[1].to_s).to(include("Found constant 'Some::Example'"))
+    expect(@patrol.warnings[0].to_s).to(include("Found constant 'Pizza'"))
   end
 
   it "finds denied regexp" do
@@ -65,6 +90,7 @@ RSpec.describe NoLorem::CodePatrol do
     HEREDOC
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
+    expect(@patrol.warnings?).to(be(false))
     expect(@patrol.issues.count).to(eq(1))
     expect(@patrol.issues[0].to_s).to(include("Found expression 'https://example.com/hello/there'"))
   end
@@ -72,6 +98,7 @@ RSpec.describe NoLorem::CodePatrol do
   it "scans files" do
     @patrol.examine_files(["lib/no-lorem/runner.rb", "lib/no-lorem.rb"])
     expect(@patrol.issues?).to(be(true))
+    expect(@patrol.warnings?).to(be(false))
     expect(@patrol.issues.count).to(eq(1))
     expect(@patrol.issues[0].to_s).to(include("OptionParser"))
   end

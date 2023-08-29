@@ -55,7 +55,7 @@ module NoLorem
     end
 
     def parse_options(argv)
-      @options = { "exclude" => [], "deny" => {} }
+      @options = { "exclude" => [], "deny" => {}, "warn" => {} }
       @files = []
       @option_parser = OptionParser.new do |opts|
         opts.banner = "Usage: no-lorem [options] <path>"
@@ -84,14 +84,24 @@ module NoLorem
           @options["verbose"] = true
         end
 
-        opts.on("-w", "--deny-word WORD", "Add word to denylist") do |word|
+        opts.on("-W", "--deny-word WORD", "Add word to denylist") do |word|
           @options["deny"]["words"] = [] unless @options["deny"]["words"]
           @options["deny"]["words"] << word
         end
 
-        opts.on("-C", "--deny-constant CONSTANT", "Add constant to denylist") do |constant|
-          @options["deny"]["constants"] = [] unless @options["deny"]["words"]
+        opts.on("-K", "--deny-constant CONSTANT", "Add constant to deny list") do |constant|
+          @options["deny"]["constants"] = [] unless @options["deny"]["constants"]
           @options["deny"]["constants"] << constant
+        end
+
+        opts.on("-w", "--warn-word WORD", "Add words from file to warnlist") do |word|
+          @options["warn"]["words"] = [] unless @options["warn"]["words"]
+          @options["warn"]["words"] << word
+        end
+
+        opts.on("-k", "--warn-constant CONSTANT", "Add constants from file to warnlist") do |constant|
+          @options["warn"]["constants"] = [] unless @options["warn"]["constants"]
+          @options["warn"]["constants"] << constant
         end
       end
       @option_parser.parse!(argv)
@@ -130,15 +140,23 @@ module NoLorem
       end
       puts "]"
       issues = code_patrol.issues + line_patrol.issues
+      wanings = code_patrol.warnings + line_patrol.warnings
+      if wanings.any?
+        puts terminal.yellow("Found #{wanings.length} warning(s):")
+        wanings.each_with_index do |warning, index|
+          puts terminal.cyan(" #{index+1}) #{warning.location} ")
+          puts "    " + terminal.yellow(warning.description)
+        end
+      end
       if issues.any?
-        puts terminal.yellow("Found #{issues.length} issue(s):")
+        puts terminal.red("Found #{issues.length} issue(s):")
         issues.each_with_index do |issue, index|
           puts terminal.cyan(" #{index+1}) #{issue.location} ")
           puts "    " + terminal.red(issue.description)
         end
         exit 1
       end
-      puts terminal.green("No issues where found. Great!")
+      puts terminal.green("No blocking issues where found. Great!")
     end
 
     def process_ruby_file(file, with:)

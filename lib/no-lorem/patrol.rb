@@ -26,21 +26,24 @@ module NoLorem
 
   class Patrol
     attr_reader :issues
+    attr_reader :warnings
     attr_reader :config
     attr_reader :deny
     attr_reader :context
 
-    DENYLIST_KINDS = ["words", "constants"]
+    WATCHLIST_KINDS = ["words", "constants"].freeze
 
     def initialize(config:)
-      @issues = []
       @config = config
-      @deny = @config["deny"]
-      validate_deny_lists
+      @deny = @config["deny"] || {}
+      @warn = @config["warn"] || {}
+      validate_watchlists
+      reset
     end
 
     def reset
       @issues = []
+      @warnings = []
     end
 
     def issues?
@@ -49,6 +52,14 @@ module NoLorem
 
     def add_issue(description, line:)
       @issues << Issue.new(description, file: context, line: line)
+    end
+
+    def warnings?
+      warnings.any?
+    end
+
+    def add_warning(description, line:)
+      @warnings << Issue.new(description, file: context, line: line)
     end
 
     def examine_files(files)
@@ -60,54 +71,69 @@ module NoLorem
     end
 
     def examine(source, context: "(string)")
+      # NOTE: this is an empty method, subclasses should call super.
       @context = context
       issues?
     end
 
-    def watchlist_match?(**args)
+    def watchlist_match?(watchlist, **args)
       args.each do |key, word|
         key = key.to_s
-        next unless @deny[key]
-        @deny[key].each do |expression|
-          if m = expression.match(/\A\/(.*)\/\Z/)
-            return true if Regexp.new(m[1]).match(word)
-          elsif expression.downcase == expression
-            return true if word.downcase == expression.downcase
-          end
-          return true if expression == word
-        end
+        next unless watchlist[key]
+        watchlist[key].each { |expression| return true if word_matches_expression?(word, expression) }
       end
       false
     end
 
     def examine_constant(str, line: 0)
       str = str.to_s
-      if watchlist_match?(constants: str)
+      if watchlist_match?(@deny, constants: str)
         add_issue("Found constant '#{str}'", line: line)
+      end
+      if watchlist_match?(@warn, constants: str)
+        add_warning("Found constant '#{str}'", line: line)
       end
     end
 
     def examine_string(str, line: 0)
+      # NOTE: The code duplication between denylists and warnlists suggests that we should
+      # refactor these cases into some kind of "watchlist_match" class.
       words = str.split(/\s+/)
       words.each do |word|
-        if watchlist_match?(words: word)
+        if watchlist_match?(@deny, words: word)
           add_issue("Found expression '#{word}'", line: line)
+          break unless @config["all"]
+        end
+        if watchlist_match?(@warn, words: word)
+          add_warning("Found expression '#{word}'", line: line)
           break unless @config["all"]
         end
       end
     end
 
     private
-    def validate_deny_lists
-      unless @deny && @deny.keys.length>0
-        raise ArgumentError.new("No deny list specified")
+
+    def word_matches_expression?(word, expression)
+      if m = expression.match(/\A\/(.*)\/\Z/)
+        return true if Regexp.new(m[1]).match(word)
+      elsif expression.downcase == expression
+        return true if word.downcase == expression.downcase
       end
-      @deny.keys.each do |key|
-        unless DENYLIST_KINDS.include? key
-          raise ArgumentError.new("Unrecognized denylist: #{key}")
-        end
-        unless @deny[key].is_a? Array
-          raise ArgumentError.new("Denylist '#{key}' should be an array")
+      expression == word
+    end
+
+    def validate_watchlists
+      if @deny.keys.length==0 && @warn.keys.length==0
+        raise ArgumentError.new("No watchlist specified, please specify at least a 'denylist' or a 'warnlist'")
+      end
+      {denylist: @deny, warnlist: @warn}.each do |watchlist_type, watchlist|
+        watchlist.keys.each do |key|
+          unless WATCHLIST_KINDS.include? key
+            raise ArgumentError.new("Unrecognized #{watchlist_type} type: #{key}")
+          end
+          unless watchlist[key].is_a? Array
+            raise ArgumentError.new("#{watchlist_type} '#{key}' should be an array")
+          end
         end
       end
     end

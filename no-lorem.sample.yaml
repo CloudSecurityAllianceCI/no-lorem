@@ -22,3 +22,6 @@ deny:
     - pariatur
   constants:
     - Faker
+warn:
+  words: 
+    - 'TODO:'
