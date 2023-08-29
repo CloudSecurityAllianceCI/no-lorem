@@ -31,7 +31,7 @@ module NoLorem
     attr_reader :terminal
 
     def initialize
-      @terminal = nil
+      @terminal = Pastel.new(enabled: false) # Default to no color
     end
 
     def go(argv)
@@ -117,7 +117,7 @@ module NoLorem
 
     def process_configuration
       if file = configuration_file
-        config = YAML.load_file(file)
+        config = load_yaml_config(file)
         puts "Using configuration file: #{file}"
         @options.delete("config")
         @config = NoLorem.deep_merge_hashes(config, @options)
@@ -223,6 +223,10 @@ module NoLorem
         @config["exclude"].each { |file_or_dir| exclusion_list += expand_files(file_or_dir) }
       end
       @files -= exclusion_list
+    end
+
+    def load_yaml_config(file)
+      YAML.load_file(file)
     end
 
     def print_denylists
