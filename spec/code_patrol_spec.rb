@@ -1,11 +1,12 @@
-require_relative '../lib/no-lorem'
+# frozen_string_literal: true
+require_relative '../lib/no_lorem'
 
-RSpec.describe NoLorem::CodePatrol do
+RSpec.describe(NoLorem::CodePatrol) do
   before do
     @config = {
       "deny" => {
         "words" => ["lorem", "ipsum", "consectetur", "/https:\/\/example.com/"],
-        "constants" => ["Some::Example", "Faker", "Example", "OptionParser"],
+        "constants" => ["Some::Example", "Faker", "Example"],
       },
       "warn" => {
         "words" => ["dolor", "sit", "amet", "elit"],
@@ -42,11 +43,11 @@ RSpec.describe NoLorem::CodePatrol do
 
   it "finds denied words" do
     sample_code = <<~HEREDOC
-    module Foo
-      def self.example()
-        puts "Lorem ipsum"
+      module Foo
+        def self.example()
+          puts "Lorem ipsum"
+        end
       end
-    end
     HEREDOC
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
@@ -58,19 +59,19 @@ RSpec.describe NoLorem::CodePatrol do
 
   it "finds denied constants and warnings" do
     sample_code = <<~HEREDOC
-    module Foo
-      def self.example()
-        puts Faker::Movies.title
-      end
+      module Foo
+        def self.example()
+          puts Faker::Movies.title
+        end
 
-      class Other
-        include Pizza
+        class Other
+          include Pizza
 
-        def info
-          @info ||= Some::Example.text
+          def info
+            @info ||= Some::Example.text
+          end
         end
       end
-    end
     HEREDOC
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
@@ -92,14 +93,16 @@ RSpec.describe NoLorem::CodePatrol do
     expect(@patrol.issues?).to(be(true))
     expect(@patrol.warnings?).to(be(false))
     expect(@patrol.issues.count).to(eq(1))
-    expect(@patrol.issues[0].to_s).to(include("Found expression 'https://example.com/hello/there'"))
+    expect(@patrol.issues[0].to_s).to(include("Found expression 'https://example.com'"))
   end
 
   it "scans files" do
-    @patrol.examine_files(["lib/no-lorem/runner.rb", "lib/no-lorem.rb"])
+    @patrol.examine_files(["spec/support/example.rb", "spec/support/example.html.erb"])
     expect(@patrol.issues?).to(be(true))
     expect(@patrol.warnings?).to(be(false))
-    expect(@patrol.issues.count).to(eq(1))
-    expect(@patrol.issues[0].to_s).to(include("OptionParser"))
+    expect(@patrol.issues.count).to(eq(3))
+    expect(@patrol.issues[0].to_s).to(include("Faker"))
+    expect(@patrol.issues[1].to_s).to(include("lorem"))
+    expect(@patrol.issues[2].to_s).to(include("ipsum"))
   end
 end

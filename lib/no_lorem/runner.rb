@@ -8,17 +8,17 @@ require 'pathname'
 module NoLorem
   def self.deep_merge_hashes(original, extra)
     result = {}
-    original.each do |key,val|
-      if extra.key? key
+    original.each do |key, val|
+      result[key] = if extra.key?(key)
         if original[key].is_a?(Hash)
-          result[key] = NoLorem.deep_merge_hashes(val, extra[key])
+          NoLorem.deep_merge_hashes(val, extra[key])
         elsif original[key].is_a?(Array)
-          result[key] = val + extra[key]
+          val + extra[key]
         else
-          result[key] = extra[key]
+          extra[key]
         end
       else
-        result[key] = val
+        val
       end
     end
     (extra.keys - original.keys).each do |key|
@@ -108,17 +108,17 @@ module NoLorem
     end
 
     def set_terminal_coloring
-      if @options.key? "color"
-        @terminal = Pastel.new(enabled: @options["color"])
+      @terminal = if @options.key?("color")
+        Pastel.new(enabled: @options["color"])
       else
-        @terminal = Pastel.new(enabled: $stdout.tty?)
+        Pastel.new(enabled: $stdout.tty?)
       end
     end
 
     def process_configuration
-      if file = configuration_file
+      if (file = configuration_file)
         config = load_yaml_config(file)
-        puts "Using configuration file: #{file}"
+        puts("Using configuration file: #{file}")
         @options.delete("config")
         @config = NoLorem.deep_merge_hashes(config, @options)
       else
@@ -130,12 +130,12 @@ module NoLorem
       code_patrol = NoLorem::CodePatrol.new(config: @config)
       line_patrol = NoLorem::LinePatrol.new(config: @config)
 
-      print "Examining #{@files.length} file(s): ["
+      print("Examining #{@files.length} file(s): [")
       @files.each do |file|
-        if file.end_with? ".rb"
-          process_ruby_file file, with: code_patrol
+        if file.end_with?(".rb")
+          process_ruby_file(file, with: code_patrol)
         else
-          process_text_file file, with: line_patrol
+          process_text_file(file, with: line_patrol)
         end
       end
       puts "]"
@@ -144,17 +144,17 @@ module NoLorem
       if wanings.any?
         puts terminal.yellow("Found #{wanings.length} warning(s):")
         wanings.each_with_index do |warning, index|
-          puts terminal.cyan(" #{index+1}) #{warning.location} ")
+          puts terminal.cyan(" #{index + 1}) #{warning.location} ")
           puts "    " + terminal.yellow(warning.description)
         end
       end
       if issues.any?
         puts terminal.red("Found #{issues.length} issue(s):")
         issues.each_with_index do |issue, index|
-          puts terminal.cyan(" #{index+1}) #{issue.location} ")
+          puts terminal.cyan(" #{index + 1}) #{issue.location} ")
           puts "    " + terminal.red(issue.description)
         end
-        exit 1
+        exit(1)
       end
       puts terminal.green("No blocking issues where found. Great!")
     end
@@ -163,7 +163,7 @@ module NoLorem
       if verbose?
         puts file
       else
-        print terminal.blue("c")
+        print(terminal.blue("c"))
       end
       with.examine_files(file)
     end
@@ -172,7 +172,7 @@ module NoLorem
       if verbose?
         puts file
       else
-        print terminal.blue("t")
+        print(terminal.blue("t"))
       end
       with.examine_files(file)
     end
@@ -183,11 +183,13 @@ module NoLorem
 
       candidates.each do |path|
         candidate = File.expand_path(path)
-        if File.exist? candidate
+        if File.exist?(candidate)
           return candidate
         end
       end
-      puts terminal.yellow("No configuration file specified, tried default locations without success: #{candidates.join(', ')}")
+      puts(terminal.yellow(
+        "No configuration file specified, tried default locations without success: #{candidates.join(', ')}",
+      ))
       nil
     end
 
@@ -197,31 +199,27 @@ module NoLorem
         Dir.glob("#{file_or_dir}/*").each do |path|
           result += expand_files(path)
         end
-      else
-        if file_or_dir.end_with?('.rb') ||
+      elsif file_or_dir.end_with?('.rb') ||
             file_or_dir.end_with?('.erb') ||
             file_or_dir.end_with?('.slim')
-          result << Pathname.new(file_or_dir).cleanpath.to_s
-        end
+        result << Pathname.new(file_or_dir).cleanpath.to_s
       end
       result
     end
 
     def generate_file_list(argv)
       @files = []
-      if argv.length>0
+      if !argv.empty?
         argv.each { |file_or_dir| @files += expand_files(file_or_dir) }
       else
         puts @option_parser
         puts
         puts terminal.yellow("Please specify a file or directory to analyze")
-        exit 1
+        exit(1)
       end
 
       exclusion_list = []
-      if @config["exclude"]
-        @config["exclude"].each { |file_or_dir| exclusion_list += expand_files(file_or_dir) }
-      end
+      @config["exclude"]&.each { |file_or_dir| exclusion_list += expand_files(file_or_dir) }
       @files -= exclusion_list
     end
 
