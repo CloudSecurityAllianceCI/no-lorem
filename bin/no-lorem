@@ -3,6 +3,6 @@
 
 libx = File.expand_path("../../lib", __FILE__)
 $LOAD_PATH.unshift(libx) unless $LOAD_PATH.include?(libx)
-require 'no-lorem'
+require 'no_lorem'
 
 NoLorem::Runner.new.go(ARGV)

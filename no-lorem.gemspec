@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "lib/no-lorem/version"
+require_relative "lib/no_lorem/version"
 
 Gem::Specification.new do |s|
   s.name        = "no-lorem"
@@ -21,11 +21,14 @@ Gem::Specification.new do |s|
 
   s.required_ruby_version = ">= 2.7.2"
 
-  s.add_runtime_dependency("yaml","~> 0.2")
+  s.add_runtime_dependency("yaml", "~> 0.2")
   s.add_runtime_dependency("parser", "~> 3.2")
   s.add_runtime_dependency("pastel", "~> 0.8")
   s.add_runtime_dependency("warning", "~> 1.3")
 
   s.add_development_dependency("rspec", "~> 3.0")
   s.add_development_dependency("byebug", "~> 11.0")
+  s.add_development_dependency("rubocop", "~> 1.0")
+  s.add_development_dependency("rubocop-shopify", "~> 1.0")
+  s.add_development_dependency("rubocop-rspec", "~> 2.0")
 end
