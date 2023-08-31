@@ -212,10 +212,15 @@ module NoLorem
       if !argv.empty?
         argv.each { |file_or_dir| @files += expand_files(file_or_dir) }
       else
-        puts @option_parser
         puts
-        puts terminal.yellow("Please specify a file or directory to analyze")
-        exit(1)
+        puts terminal.red("Please specify at least one file or directory to analyze")
+        exit(2)
+      end
+
+      if @files.empty?
+        puts
+        puts terminal.red("No files found in #{argv.join(', ')}")
+        exit(2)
       end
 
       exclusion_list = []

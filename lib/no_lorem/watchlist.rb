@@ -35,11 +35,11 @@ module NoLorem
           end
         end
         if (m = as_case_insensitive_word(expression))
-          if text.match(Regexp.new("(\\W|\\A)(#{m})(\\W|\\z)", Regexp::IGNORECASE))
+          if text.match(Regexp.new("(\\W|\\A|_)(#{m})(\\W|\\z|_)", Regexp::IGNORECASE))
             return [Regexp.last_match(2), Regexp.last_match.post_match]
           end
         end
-        if text.match(Regexp.new("(\\W|\\A)(#{expression})(\\W|\\z)"))
+        if text.match(Regexp.new("(\\W|\\A|_)(#{expression})(\\W|\\z|_)"))
           return [Regexp.last_match(2), Regexp.last_match.post_match]
         end
       end

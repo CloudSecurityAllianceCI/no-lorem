@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    no-lorem (0.0.4)
+    no-lorem (0.0.5)
       parser (~> 3.2)
       pastel (~> 0.8)
       warning (~> 1.3)
@@ -35,7 +35,7 @@ GEM
     rspec-expectations (3.12.3)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.12.0)
-    rspec-mocks (3.12.5)
+    rspec-mocks (3.12.6)
       diff-lcs (>= 1.2.0, < 2.0)
       rspec-support (~> 3.12.0)
     rspec-support (3.12.1)

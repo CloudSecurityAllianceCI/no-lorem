@@ -21,10 +21,20 @@ RSpec.describe(NoLorem::Runner) do
     expect(scan).to(include("Found 1 issue(s)"))
   end
 
-  it "returns a 0 status code if a warning was found" do
+  it "returns a 0 status code if a warning word was found" do
     scan = %x(bin/no-lorem -w lorem spec/support)
     expect($CHILD_STATUS.success?).to(be(true))
     expect(scan).to(include("Found 1 warning(s)"))
+  end
+
+  it "returns a 2 status code if it can't process any file" do
+    %x(bin/no-lorem -w lorem ./foobar)
+    expect($CHILD_STATUS.exitstatus).to(be(2))
+  end
+
+  it "returns a 2 status code if it can't process the config file" do
+    %x(bin/no-lorem -c foobar.yaml spec/support)
+    expect($CHILD_STATUS.exitstatus).to(be(2))
   end
 
   it "scans files for first errors on each line" do

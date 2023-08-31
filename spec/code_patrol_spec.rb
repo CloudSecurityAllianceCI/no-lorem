@@ -28,7 +28,7 @@ RSpec.describe(NoLorem::CodePatrol) do
   end
 
   it "finds denied word and waring word in plain string" do
-    sample_code = '"Lorem ipsum dolor sit amet"'
+    sample_code = '"Lorem ipsum, dolor sit amet."'
     @patrol.examine(sample_code)
     expect(@patrol.issues?).to(be(true))
     expect(@patrol.warnings?).to(be(true))
@@ -39,6 +39,24 @@ RSpec.describe(NoLorem::CodePatrol) do
     expect(@patrol.warnings[0].to_s).to(include("Found expression 'dolor'"))
     expect(@patrol.warnings[1].to_s).to(include("Found expression 'sit'"))
     expect(@patrol.warnings[2].to_s).to(include("Found expression 'amet'"))
+  end
+
+  it "does not find denied word in plain string if they are not delimited" do
+    sample_code = '"Loremipsum"'
+    @patrol.examine(sample_code)
+    expect(@patrol.issues?).to(be(false))
+    expect(@patrol.warnings?).to(be(false))
+  end
+
+  [':', '-', '_', ',', '.', '!', '\\"', '/', '\\\\', '+', '*', '<', '>', '@', '&'].each do |s|
+    it "finds denied word in plain string with non-word separator '#{s}'" do
+      sample_code = "puts(\"Lorem#{s}ipsum\")"
+      @patrol.examine(sample_code)
+      expect(@patrol.issues?).to(be(true))
+      expect(@patrol.warnings?).to(be(false))
+      expect(@patrol.issues.count).to(eq(2))
+      @patrol.reset
+    end
   end
 
   it "finds denied words" do
@@ -94,6 +112,40 @@ RSpec.describe(NoLorem::CodePatrol) do
     expect(@patrol.warnings?).to(be(false))
     expect(@patrol.issues.count).to(eq(1))
     expect(@patrol.issues[0].to_s).to(include("Found expression 'https://example.com'"))
+  end
+
+  it "finds denied regexp and captures the full expression" do
+    patrol = NoLorem::CodePatrol.new(config: { "deny" => { "words" => ["/https:\/\/example.com\/.*/"] } })
+    sample_code = <<~HEREDOC
+      def default_url
+        "https://example.com/hello/there"
+      end
+    HEREDOC
+    patrol.examine(sample_code)
+    expect(patrol.issues?).to(be(true))
+    expect(patrol.warnings?).to(be(false))
+    expect(patrol.issues.count).to(eq(1))
+    expect(patrol.issues[0].to_s).to(include("Found expression 'https://example.com/hello/there'"))
+  end
+
+  it "only finds the first denied word" do
+    patrol = NoLorem::CodePatrol.new(config: { "deny" => { "words" => ["lorem", "ipsum"] } })
+    sample_code = "puts \"Lorem ipsum\""
+    patrol.examine(sample_code)
+    expect(patrol.issues?).to(be(true))
+    expect(patrol.warnings?).to(be(false))
+    expect(patrol.issues.count).to(eq(1))
+    expect(patrol.issues[0].to_s).to(include("Found expression 'Lorem'"))
+  end
+
+  it "only finds the first warning word" do
+    patrol = NoLorem::CodePatrol.new(config: { "warn" => { "words" => ["lorem", "ipsum"] } })
+    sample_code = "puts \"Lorem ipsum\""
+    patrol.examine(sample_code)
+    expect(patrol.issues?).to(be(false))
+    expect(patrol.warnings?).to(be(true))
+    expect(patrol.warnings.count).to(eq(1))
+    expect(patrol.warnings[0].to_s).to(include("Found expression 'Lorem'"))
   end
 
   it "scans files" do
